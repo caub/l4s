@@ -1,3 +1,4 @@
+require('dotenv/config');
 const express = require('express');
 const React = require('react');
 const { renderToStaticMarkup } = require('react-dom/server');
@@ -5,6 +6,7 @@ const fs = require('fs');
 const basicAuth = require('basic-auth');
 const compression = require('compression');
 const content = require('./content');
+const b2 = require('./b2');
 require('@babel/register')({ only: [`${__dirname}/components`, `${__dirname}/pages`] }); // uses .babelrc
 
 const app = express().disable('x-powered-by');
@@ -27,30 +29,60 @@ app.use('/static', express.static(__dirname + '/public', process.env.NODE_ENV ==
   index: false,
   maxAge: '30d',
 }));
+app.use('/static', express.static(__dirname + '/assets', process.env.NODE_ENV === 'production' && {
+  immutable: true,
+  redirect: false,
+  index: false,
+  maxAge: '30d',
+}));
+
+// TODO fix
+app.use('/bootstrap-icons.woff2', express.static(__dirname + '/assets', {index: '/bootstrap-icons.woff2'}));
+app.use('/bootstrap-icons.woff', express.static(__dirname + '/assets', {index: '/bootstrap-icons.woff'}));
 
 app.use(require('express-request-language')({
   languages: ['fr', 'en'],
   queryName: 'lang',
 }));
 
+function checkAuth(req, res, next) {
+  if (process.env.NODE_ENV !== 'production') return next();
 
-app.use('/api', express.json({ limit: '500kb' }), (req, res, next) => {
   const credentials = basicAuth(req);
-  if (process.env.NODE_ENV !== 'production' || `${credentials.name}:${credentials.pass}` === process.env.ADMIN_CREDS) {
-    return next();
-  }
+  if (credentials && `${credentials.name}:${credentials.pass}` === process.env.ADMIN_CREDS) return next();
+
   res.header('WWW-Authenticate', 'Basic realm=""');
   res.sendStatus(401);
-});
+}
+
+app.use('/api', checkAuth);
 app.route('/api/content')
+  .all(express.json({ limit: '500kb' }))
   .patch((req, res) => {
     content.update(req.language || 'en', req.body)
       .then(() => res.end())
       .catch(err => res.status(400).json({ error: err }));
   });
+app.route('/api/upload')
+  .post(async (req, res) => {
+    if (!req.query.name) return res.status(400).json({ error: 'Missing file name' });
+    const chunks = [];
+    for await (const chunk of req) {
+      chunks.push(chunk);
+      if (chunks.reduce((a, c) => a + c.length, 0) > 2_048_000) {
+        return res.status(400).json({ error: 'File too large (>2MB)' });
+      }
+    }
+    b2.upload({body: Buffer.concat(chunks), name: req.query.name, type: req.headers['content-type']})
+      .then((url) => res.json({ url }))
+      .catch(err => {console.error(err); res.status(400).json({ error: err }); });
+  });
 
 app.use((req, res, next) => {
   res.setHeader('Content-Type', 'text/html; charset=UTF-8');
+  if (req.query.edit !== undefined) {
+    return checkAuth(req, res, next);
+  }
   next();
 });
 
@@ -97,6 +129,7 @@ app.use(async function (req, res, next) {
 // error handler
 app.use(async function (err, req, res, next) {
   try {
+    console.error('ERR', err);
     res.status(500).send(await renderPage('_error', { status: 500, err, req }));
   } catch (err) {
     console.error(err);

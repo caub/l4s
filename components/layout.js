@@ -1,4 +1,6 @@
+import fs from 'fs';
 
+const cssFileName = fs.readdirSync(__dirname + '/../assets').find(n => n.endsWith('.css'));
 
 export default function Html({
   req,
@@ -38,8 +40,12 @@ export default function Html({
           </>
         )}
 
-        {/*        <link rel="preload" as="style" href={cssPath} />
-        <link rel="stylesheet" href={cssPath} />*/}
+        {cssFileName && (
+          <>
+            <link rel="preload" as="style" href={'/static/' + cssFileName} />
+            <link rel="stylesheet" href={'/static/' + cssFileName} />
+          </>
+        )}
       </head>
 
       <body>

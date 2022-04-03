@@ -1,11 +1,11 @@
 const { MongoClient } = require('mongodb');
-const { MongoMemoryServer } = require('mongodb-memory-server');
 
 
 async function getDbUri() {
   if (process.env.DB_URI) return process.env.DB_URI;
 
   if (process.env.NODE_ENV !== 'production') {
+    const { MongoMemoryServer } = require('mongodb-memory-server');
     const mongod = await MongoMemoryServer.create();
     console.debug(mongod.getUri());
     return mongod.getUri();

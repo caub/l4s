@@ -79,7 +79,7 @@ exports.Block = class Block {
     vars,
     markdown,
     inline,
-    as: As = this.editMode ? 'span' : Fragment,
+    as: As = markdown ? 'div' : this.editMode ? 'span' : Fragment,
     ...rest
   }) => {
     const text = this.text(id, vars);
@@ -88,7 +88,7 @@ exports.Block = class Block {
       return createElement(As, {
         ...this.editMode && { 'data-block': `md:${this.id(id)}` },
         ...rest,
-        dangerouslySetInnerHTML: { __html: inline ? md.renderInline(text) : md.render(text) }
+        dangerouslySetInnerHTML: { __html: this.editMode ? text : inline ? md.renderInline(text) : md.render(text) }
       });
     }
 
@@ -99,7 +99,7 @@ exports.Block = class Block {
   }
 
   List = ({ id, vars, as: As = 'ul', keys = 'title', orderBy, children, ...rest }) => {
-    const listContent = this.get(id) || { [Date.now()]: {} };
+    const listContent = this.get(id) || {};
 
     const orderFn = orderBy ? (a, b) => (listContent[a][orderBy] || a) - (listContent[b][orderBy] || b) : undefined;
 
@@ -142,13 +142,25 @@ exports.Block = class Block {
     });
   }
 
+  Button = ({ id, children, as: As, ...rest }) => {
+    const data = this.get(id) || {};
+
+    return this.Object({
+      id,
+      keys: 'text',
+      as: As,
+      ...this.editMode && !data.text && { style: { width: 10, height: 10 } }, 
+      children: createElement('button', rest, data.text || children)
+    });
+  }
+
   Link = ({ id, children, as: As, ...rest }) => {
     const data = this.get(id) || {};
     const href = data.url || rest.href;
     const rel = data.rel || rest.rel;
     const target = data.target || rest.target;
 
-    return this.prototype.Object.call(this, {
+    return this.Object({
       id,
       keys: 'url,text,rel,target',
       as: As,

@@ -1,4 +1,6 @@
 const crypto = require('crypto');
+const fetch = require('node-fetch');
+
 
 let cachedAuth;
 
@@ -30,10 +32,11 @@ async function getUploadAuth() {
     const auth = await getAuth();
 
     cachedUploadAuth = await fetch(`${auth.apiUrl}/b2api/v2/b2_get_upload_url`, {
+      method: 'POST',
       headers: {
         Authorization: auth.authorizationToken,
       },
-      body: JSON.stringify({ buckedId: auth.allowed.bucketId })
+      body: JSON.stringify({ bucketId: auth.allowed.bucketId })
     }).then(r => r.json());
 
     if (cachedUploadAuth.code === 'expired_auth_token') {
@@ -45,6 +48,8 @@ async function getUploadAuth() {
     if (!cachedUploadAuth.authorizationToken) {
       throw Object.assign(new Error(), cachedUploadAuth);
     }
+
+    cachedUploadAuth.downloadUrl = auth.downloadUrl;
   }
   return cachedUploadAuth;
 }
@@ -58,12 +63,12 @@ exports.upload = async function upload({ body, name, type }) {
     headers: {
       'Authorization': auth.authorizationToken,
       'X-Bz-File-Name': encodeURIComponent(name),
-      'Content-Type': type || 'b2/auto',
+      'Content-Type': type || 'b2/x-auto',
       'X-Bz-Content-Sha1': crypto.createHash('sha1').update(body).digest('hex'),
     },
     body
   }).then(r => r.json());
- 
+
   if (result.code === 'expired_auth_token') {
     cachedUploadAuth = null;
     console.log('Expired upload auth token, retry');
@@ -71,7 +76,7 @@ exports.upload = async function upload({ body, name, type }) {
   }
 
   if (result.fileName) { // OK
-    return `${auth.downloadUrl}/file/${auth.allowed.bucketId}/${result.fileName}`;
+    return `${auth.downloadUrl}/file/l4s-files/${result.fileName}`;
   }
 
   throw Object.assign(new Error(), result);

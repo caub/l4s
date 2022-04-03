@@ -1,0 +1,77 @@
+{
+  "env": {
+    "browser": true,
+    "node": true,
+    "es6": true,
+    "mocha": true
+  },
+  "plugins": [
+    "import",
+    "react",
+    "react-hooks",
+    "jsx-a11y",
+    "security"
+  ],
+  "extends": [
+    "eslint:recommended",
+    "plugin:jsx-a11y/recommended",
+    "plugin:import/recommended",
+    "plugin:react/recommended",
+    "plugin:react-hooks/recommended",
+    "plugin:security/recommended"
+  ],
+  "globals": {
+    "Atomics": "readonly",
+    "SharedArrayBuffer": "readonly",
+    "process": true,
+    "require": true,
+  },
+  "settings": {
+    "react": {
+      "version": "17.x"
+    }
+  },
+  "parserOptions": {
+    "ecmaFeatures": {
+      "jsx": true
+    },
+    "ecmaVersion": 2020,
+    "sourceType": "module"
+  },
+  "root": true,
+  "rules": {
+    "indent": ["error", 2, {"SwitchCase": 1}],
+    "quotes": ["warn", "single", { "allowTemplateLiterals": true, "avoidEscape": true }],
+    "no-multiple-empty-lines": ["warn", { "max": 2 }],
+    "max-len": ["warn", 160],
+    "no-plus-plus": "off",
+    "no-underscore-dangle": "off",
+    "max-classes-per-file": "warn",
+    "consistent-return": "warn",
+    "camelcase": "off",
+    "arrow-parens": "off",
+    "no-nested-ternary": "off",
+    "no-unused-vars": "warn",
+    "no-empty": "warn",
+    "no-extra-semi": "warn",
+    "object-curly-newline": "off",
+    "object-curly-spacing": ["error", "always"],
+    "react/jsx-filename-extension": "off",
+    "react/jsx-props-no-spreading": "warn",
+    "react/prop-types": "off",
+    "react/require-default-props": "warn",
+    "react/forbid-prop-types": "warn",
+    "react/static-property-placement": "off",
+    "react/state-in-constructor": "off",
+    "react/destructuring-assignment": "warn",
+    "react/jsx-max-props-per-line": "off",
+    "react/jsx-one-expression-per-line": "off",
+    "react/jsx-no-target-blank": "off",
+    "react/react-in-jsx-scope": "off",
+    "react/display-name": "warn",
+    "react/no-deprecated": "error",
+    "jsx-a11y/no-autofocus": "warn",
+    "jsx-a11y/media-has-caption": "warn",
+    "jsx-a11y/label-has-associated-control": "warn",
+  }
+}

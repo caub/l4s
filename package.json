@@ -1,0 +1,48 @@
+{
+  "name": "les4saisons",
+  "version": "1.0.0",
+  "private": true,
+  "description": "",
+  "main": "index.js",
+  "engines": {
+    "node": ">=17",
+    "npm": ">=8"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/caub/les4saisons.git"
+  },
+  "author": "",
+  "license": "MIT",
+  "homepage": "https://github.com/caub/les4saisons#readme",
+  "scripts": {
+    "start": "node --experimental-fetch --no-warnings server.js",
+    "dev": "nodemon --experimental-fetch --no-warnings server.js"
+  },
+  "dependencies": {
+    "@babel/core": "^7.17.5",
+    "@babel/preset-env": "^7.16.11",
+    "@babel/preset-react": "^7.16.7",
+    "@babel/register": "^7.17.7",
+    "basic-auth": "^2.0.1",
+    "compression": "^1.7.4",
+    "express": "^4.17.3",
+    "express-request-language": "^1.1.15",
+    "linkify-it": "^3.0.3",
+    "markdown-it": "^12.3.2",
+    "mongodb": "^4.4.1",
+    "react": "^17.0.2",
+    "react-dom": "^17.0.2",
+    "update": "^0.7.4"
+  },
+  "devDependencies": {
+    "eslint": "^8.11.0",
+    "eslint-plugin-import": "^2.25.4",
+    "eslint-plugin-jsx-a11y": "^6.5.1",
+    "eslint-plugin-react": "^7.29.4",
+    "eslint-plugin-react-hooks": "^4.3.0",
+    "eslint-plugin-security": "^1.4.0",
+    "mongodb-memory-server": "^8.4.1",
+    "nodemon": "^2.0.15"
+  }
+}

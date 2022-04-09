@@ -132,9 +132,9 @@ document.addEventListener('click', e => {
 
       case 'obj':
       case 'list': {
-        const vals = window.prompt(blockKeys.split(',').join(' / '));
-        const containerId = blockType === 'list' ? `${blockId}.${el.childElementCount}` : blockId;
-        window._wx_data[containerId] = Object.fromEntries(blockKeys.split(',').map((k, i) => [k, vals.split(' / ')[i]]));
+        // const vals = window.prompt(blockKeys.split(',').join(' / '));
+        // const containerId = blockType === 'list' ? `${blockId}.${el.childElementCount}` : blockId;
+        // window._wx_data[containerId] = Object.fromEntries(blockKeys.split(',').map((k, i) => [k, vals.split(' / ')[i]]));
         publishButton.classList.add('show');
         break;
       }

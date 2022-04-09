@@ -79,7 +79,7 @@ exports.Block = class Block {
     vars,
     markdown,
     inline,
-    as: As = markdown ? 'div' : this.editMode ? 'span' : Fragment,
+    as: As = markdown ? (inline ? 'p' : 'div') : (this.editMode ? 'span' : Fragment),
     ...rest
   }) => {
     const text = this.text(id, vars);
@@ -119,11 +119,19 @@ exports.Block = class Block {
     );
   }
 
-  Object = ({ id, keys, as: As = this.editMode ? 'div' : Fragment, children, ...rest }) => {
+  Object = ({ id, keys, help, as: As = this.editMode ? 'div' : Fragment, children, ...rest }) => {
     return createElement(As, {
-      ...this.editMode && { 'data-block': `obj:${this.id(id)};${keys}` },
-      ...rest
-    }, children);
+      ...this.editMode && { 'data-block': `obj:${this.id(id)};${keys}`, className: 'position-relative' },
+      ...rest,
+    },
+      children,
+      createElement('details', { className: 'position-absolute bg-white text-muted text-end rounded-1 overflow-hidden', style: {top: 1, right: 1} },
+        createElement('summary', {className: 'text-uppercase fs-7'}, help || `${id} props`),
+        createElement('div', {className: 'd-flex flex-column border border-light'},
+          ...keys.split(',').map(key => this.Text({ id: [id, key].filter(Boolean).join('.'), key }))
+        )
+      )
+    );
   }
 
   Image = ({ id, alt, ...rest }) => {

@@ -9,6 +9,11 @@ const content = require('./content');
 const b2 = require('./b2');
 require('@babel/register')({ only: [`${__dirname}/components`, `${__dirname}/pages`] }); // uses .babelrc
 
+
+process.on('uncaughtExceptionMonitor', (err, origin) => {
+  console.log('IMPORTANT', origin, err);
+});
+
 const app = express().disable('x-powered-by');
 
 app.get('/healthz', (req, res) => res.end());
@@ -54,8 +59,17 @@ function checkAuth(req, res, next) {
   res.header('WWW-Authenticate', 'Basic realm=""');
   res.sendStatus(401);
 }
+app.use((req, res, next) => {
+  if (req.query.edit !== undefined && process.env.NODE_ENV === 'production') {
+    const credentials = basicAuth(req);
+    if (`${credentials?.name}:${credentials?.pass}` !== process.env.ADMIN_CREDS) {
+      res.header('WWW-Authenticate', 'Basic realm=""');
+      res.sendStatus(401);
+    }
+  }
+  next();
+});
 
-app.use('/api', checkAuth);
 app.route('/api/content')
   .all(express.json({ limit: '500kb' }))
   .patch((req, res) => {
@@ -80,14 +94,7 @@ app.route('/api/upload')
 
 app.use((req, res, next) => {
   res.setHeader('Content-Type', 'text/html; charset=UTF-8');
-  if (req.query.edit !== undefined) {
-    return checkAuth(req, res, next);
-  }
   next();
-});
-
-process.on('uncaughtExceptionMonitor', (err, origin) => {
-  console.log('IMPORTANT', origin, err);
 });
 
 async function renderPage(page, params) {

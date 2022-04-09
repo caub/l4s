@@ -49,6 +49,10 @@ export default function Html({
       </head>
 
       <body>
+        {req.query.edit !== undefined && meta && (
+          <meta.Object keys="title,description" help="SEO tags" />
+        )}
+
         <div id="app">{children}</div>
 
         {req.query.edit !== undefined && (

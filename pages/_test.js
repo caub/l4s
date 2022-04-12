@@ -24,21 +24,26 @@ export default function Home({ cms, ...props }) {
           </div>
         </div>
         <div className="container px-5">
-          <page.Image id="thumb" className="img-fluid border rounded-3 shadow-lg mb-4" alt="Example image" width="700" height="500" loading="lazy" />
+          <page.Image id="thumb" className="img-fluid border rounded-3 shadow-lg mb-4" width="700" height="500" loading="lazy" />
+
+          <page.Image id="thumb2" className="img-fluid border rounded-3 shadow-lg mb-4" height="500" loading="lazy" />
         </div>
       </div>
 
       <section id="feat" className="container">
-        <page.List id="items" keys="icon,title,text" className="row row-cols-1 row-cols-md-3 g-4">
+        <page.List
+          id="items"
+          className="row row-cols-1 row-cols-md-3 g-4"
+        >
           {item => (
             <li key={item.id()} className="col">
               <div className="card h-100 text-center">
-                <item.Object keys="icon" className="card-img-top" help={<>icon props <a href="https://icons.getbootstrap.com/"><i className="bi-arrow-up-right-circle" role="img" /></a></>}>
+                <item.Object keys="icon" className="card-img-top" style={{ right: 1, top: 1 }} help={<>icon props <a href="https://icons.getbootstrap.com/"><i className="bi-arrow-up-right-circle" role="img" /></a></>}>
                   <i className={`bi-${item.text('icon')} card-img-top text-primary`} role="img" aria-label={item.text('label')} style={{ fontSize: '2em' }} />
                 </item.Object>
                 <div className="card-body">
                   <h5 className="card-title"><item.Text id="title" /></h5>
-                  <cms.Text id="text" as="p" markdown inline className="card-text" />
+                  <item.Text id="text" as="p" markdown inline className="card-text" />
                 </div>
               </div>
             </li>

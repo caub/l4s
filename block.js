@@ -86,67 +86,75 @@ exports.Block = class Block {
 
     if (markdown) {
       return createElement(As, {
-        ...this.editMode && { 'data-block': `md:${this.id(id)}` },
+        ...this.editMode && { 'data-wx-text': this.id(id) },
         ...rest,
         dangerouslySetInnerHTML: { __html: this.editMode ? text : inline ? md.renderInline(text) : md.render(text) }
       });
     }
 
     return createElement(As, {
-      ...this.editMode && { 'data-block': `text:${this.id(id)}` },
+      ...this.editMode && { 'data-wx-text': this.id(id) },
       ...rest
     }, text);
   }
 
-  List = ({ id, vars, as: As = 'ul', keys = 'title', orderBy, children, ...rest }) => {
-    const listContent = this.get(id) || {};
+  List = ({ id, as: As = 'ul', orderBy, children, ...rest }) => {
+    const listData = this.get(id) || [];
 
-    const orderFn = orderBy ? (a, b) => (listContent[a][orderBy] || a) - (listContent[b][orderBy] || b) : undefined;
-
-    const listKeys = Object.keys(listContent).sort(orderFn);
+    if (orderBy) listData.sort((a, b) => a[orderBy]- b[orderBy]);
 
     return createElement(
       As,
-      {
-        ...this.editMode && { 'data-block': `list:${this.id(id)};${keys}` },
-        ...rest
-      },
-      listKeys.map((key, index) => {
-        const item = this.block(`${id}.${key}`);
+      rest,
+      listData.map((data, index) => {
+        const item = this.block(`${id}.${index}`);
 
-        return cloneElement(children(item, index), { key });
-      })
+        return children(item, index);
+      }),
+      this.editMode && children(this.block(`${id}.${listData.length}`), listData.length),
     );
   }
 
-  Object = ({ id, keys, help, as: As = this.editMode ? 'div' : Fragment, children, ...rest }) => {
+  Object = ({ id, keys, uploadable = [], index, help, as: As = this.editMode ? 'div' : Fragment, children, className = '', ...rest }) => {
     return createElement(As, {
-      ...this.editMode && { 'data-block': `obj:${this.id(id)};${keys}`, className: 'position-relative' },
+      key: index,
       ...rest,
+      ...this.editMode && { 'className': `position-relative ${className}` },
     },
       children,
-      createElement('details', { className: 'position-absolute bg-white text-muted text-end rounded-1 overflow-hidden', style: {top: 1, right: 1} },
-        createElement('summary', {className: 'text-uppercase fs-7'}, help || `${id} props`),
-        createElement('div', {className: 'd-flex flex-column border border-light'},
-          ...keys.split(',').map(key => this.Text({ id: [id, key].filter(Boolean).join('.'), key }))
+      this.editMode && createElement('details', { className: 'wx-block text-muted rounded-1' },
+        createElement('summary', {}, help || `${id} props`),
+        createElement('dl', {className: 'border border-light'},
+          ...keys.split(',').map(key => createElement(
+            Fragment, 
+            {key}, 
+            createElement('dt', {}, key),
+            createElement('dd', {}, this.Text({ id: [id, key].filter(Boolean).join('.')})),
+            uploadable.includes(key) && createElement('dd', {}, createElement('input', { type: 'file', 'data-wx-upload': this.id([id, key].filter(Boolean).join('.')), className: 'form-control form-control-sm' })),
+          )),
         )
       )
     );
   }
 
-  Image = ({ id, alt, ...rest }) => {
-    const url = this.text(id);
+  Image = ({ id, ...rest }) => {
+    const data = this.get(id) || {};
 
-    if (!this.editMode && !url) return null;
+    if (!this.editMode && !data.url) return null;
 
-    return createElement('img', {
-      src: this.editMode && (!url || url[0] === '[')
-        ? 'data:image/gif;base64,R0lGODlhAQABAAAAACH5BAEKAAEALAAAAAABAAEAAAICTAEAOw=='
-        : url,
-      loading: 'lazy',
-      alt: alt?.trim(),
-      ...this.editMode && { 'data-block': `img:${this.id(id)}`, style: { minWidth: 50, maxWidth: '100%' } },
-      ...rest,
+    return this.Object({
+      id,
+      keys: 'url,alt',
+      uploadable: ['url'],
+      children: createElement('img', {
+        src: this.editMode && !data.url
+          ? 'data:image/gif;base64,R0lGODlhAQABAAAAACH5BAEKAAEALAAAAAABAAEAAAICTAEAOw=='
+          : data.url,
+        loading: 'lazy',
+        alt: data.alt,
+        ...this.editMode && { style: { minHeight: 32, maxWidth: '100%' } },
+        ...rest,
+      })
     });
   }
 
@@ -157,7 +165,6 @@ exports.Block = class Block {
       id,
       keys: 'text',
       as: As,
-      ...this.editMode && !data.text && { style: { width: 10, height: 10 } }, 
       children: createElement('button', rest, data.text || children)
     });
   }
@@ -172,7 +179,6 @@ exports.Block = class Block {
       id,
       keys: 'url,text,rel,target',
       as: As,
-      ...this.editMode && !data.text && { style: { width: 10, height: 10 } }, 
       children: createElement('a', { href, rel, target, ...rest }, data.text || children)
     });
   }

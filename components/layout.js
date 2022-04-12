@@ -1,6 +1,15 @@
 import fs from 'fs';
+import styled from '@emotion/styled';
+
 
 const cssFileName = fs.readdirSync(__dirname + '/../assets').find(n => n.endsWith('.css'));
+
+const Seo = styled.div({
+  details: {
+    top: 1,
+    right: 6,
+  }
+});
 
 export default function Html({
   req,
@@ -50,7 +59,7 @@ export default function Html({
 
       <body>
         {req.query.edit !== undefined && meta && (
-          <meta.Object keys="title,description" help="SEO tags" />
+          <meta.Object keys="title,description" help="SEO tags" as={Seo} />
         )}
 
         <div id="app">{children}</div>

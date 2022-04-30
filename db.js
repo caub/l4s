@@ -1,22 +1,31 @@
 const { MongoClient } = require('mongodb');
 
 
-async function getDbUri() {
-  if (process.env.DB_URI) return process.env.DB_URI;
+module.exports = (async url => {
+  if (process.env.DB_URI) {
+    const client = await MongoClient.connect(process.env.DB_URI);
 
-  if (process.env.NODE_ENV !== 'production') {
-    const { MongoMemoryServer } = require('mongodb-memory-server');
-    const mongod = await MongoMemoryServer.create();
-    console.debug(mongod.getUri());
-    return mongod.getUri();
+    client.addListener('error', err => console.error('MongoDB connection error', err));
+
+    return client;
   }
-}
 
+  const { MongoMemoryServer } = require('mongodb-memory-server');
+  const mongod = await MongoMemoryServer.create();
+  console.debug(mongod.getUri());
 
-module.exports = getDbUri().then(async url => {
-  const client = await MongoClient.connect(url);
+  const client = await MongoClient.connect(mongod.getUri());
 
   client.addListener('error', err => console.error('MongoDB connection error', err));
 
+  const coll = await client.db('l4s').collection('contents');
+  await coll.updateOne(
+    { _id: 'en' }, 
+    {
+      $set: {},
+    },
+    { upsert: true }
+  );
+
   return client;
-});
+})();

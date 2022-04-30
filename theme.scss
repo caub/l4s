@@ -2,9 +2,17 @@ $primary: #7e45a4;
 
 $bootstrap-icons-font-src: url("./node_modules/bootstrap-icons/font/fonts/bootstrap-icons.woff2?524846017b983fc8ded9325d94ed40f3") format("woff2"), url("./node_modules/bootstrap-icons/font/fonts/bootstrap-icons.woff?524846017b983fc8ded9325d94ed40f3") format("woff");
 
+$navbar-brand-padding-y: 0;
 
 @import "bootstrap/scss/bootstrap";
 @import "bootstrap-icons/font/bootstrap-icons.scss";
+
+
+#app {
+  display: grid;
+  grid-template-rows: auto 1fr auto;
+  min-height: 100vh;
+}
 
 html {
   scroll-behavior: smooth;
@@ -23,4 +31,9 @@ ul {
 
 button {
   cursor: pointer;
+}
+
+.navbar-brand {
+  margin-top: -.25rem;
+  margin-bottom: -.25rem;
 }

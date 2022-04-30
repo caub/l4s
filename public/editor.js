@@ -1,10 +1,14 @@
-function h(type, props) {
+import { h } from 'preact';
+
+console.log('h', h);
+
+function html(type, props) {
   const el = document.createElement(type);
   Object.assign(el, props);
   return (...children) => { el.append(...children); return el; };
 }
 
-const style = h('style')(`
+const style = html('style')(`
 [data-wx-text]:hover {
   outline: 1px auto #f002;
 }
@@ -21,16 +25,23 @@ const style = h('style')(`
 
 .wx-block {
   position: absolute;
-  background-color: #fffb;
+  background-color: #fffd;
   backdrop-filter: blur(20px);
   top: 1px;
-  right: 1px;
+  left: 1px;
   z-index: 99999997
 }
 .wx-block > summary {
   text-transform: uppercase;
-  text-align: right;
+  white-space: nowrap;
   font-size: .75rem;
+}
+.wx-block > summary::marker {
+  display: none;
+  content: "";
+}
+.wx-block > summary::before {
+  content: "✏️";
 }
 .wx-block > dl {
   display: grid;
@@ -66,24 +77,22 @@ const style = h('style')(`
 }
 .wx-publish textarea {
   resize: horizontal;
-  width: 120px;
+  width: 50px;
   height: 32px;
   backdrop-filter: blur(20px);
 }
 .wx-publish textarea:focus-visible {
   height: calc(100vh - 6px);
   width: calc(50vw - 50px);
-  background-color: #fffa;
+  background-color: #fffd;
 }
 `);
 
 document.head.append(style);
 
-const app = document.getElementById('app');
-
-const publishButton = h('button', { className: 'show btn btn-sm btn-success position-absolute' })('Publish');
-const publishEdit = h('textarea', { className: 'form-control form-control-sm' })();
-const publishContainer = h('div', { className: 'wx-publish' })(
+const publishButton = html('button', { className: 'show btn btn-sm btn-success position-absolute' })('Publish');
+const publishEdit = html('textarea', { className: 'form-control form-control-sm' })();
+const publishContainer = html('div', { className: 'wx-publish' })(
   publishEdit,
   publishButton,
 );
@@ -92,25 +101,17 @@ document.body.append(publishContainer);
 
 function getEdit() {
   if (publishEdit.value === '') return {};
-  const dataJson = `{
-${publishEdit.value.replace(/^([\w.]+)/gm, '  "$1":').replace(/(?<!^)$/gm, ',').replace(/,$/, '')}
-}`;
-
   try {
-    return JSON.parse(dataJson);
+    return JSON.parse(publishEdit.value);
   } catch {
-    console.error('Invalid json', dataJson);
+    console.error('Invalid json', publishEdit.value);
     return {};
   }
 }
 function setEdit(key, value) {
   const data = getEdit();
   data[key] = value;
-  publishEdit.value = JSON.stringify(data, null, 2)
-    .replace(/^{\n/, '')
-    .replace(/\n}$/, '')
-    .replace(/,$/gm, '')
-    .replace(/^ {2}"([\w.]+)":/gm, '$1');
+  publishEdit.value = JSON.stringify(data, null, 2);
   publishContainer.style.display = Object.keys(data).length === 0 ? 'none' : '';
 }
 function clearEdit() {
@@ -121,11 +122,11 @@ function clearEdit() {
 publishButton.onclick = async () => {
   const data = getEdit();
   if (Object.keys(data).length === 0) return;
-  if (!window.confirm(`Publish ${Object.keys(data).length} updates?`)) return;
+  if (!window.confirm(`Publish ${JSON.stringify(data, null, 2)}`)) return;
 
   for (const [key, value] of Object.entries(data)) {
-    const uploadEl = value?.startsWith('@{') && app.querySelector(`input[type="file"][data-wx-upload="${key}"]`);
-    if (uploadEl?.files[0]) {
+    const uploadEl = value?.startsWith('@{') && document.body.querySelector(`input[type="file"][data-wx-upload="${key}"]`);
+    if (uploadEl?.files?.[0]) {
       const r = await fetch(`/api/upload?name=${uploadEl.files[0].name}`, {
         method: 'POST',
         body: uploadEl.files[0]
@@ -134,7 +135,7 @@ publishButton.onclick = async () => {
     }
   }
 
-  fetch('/api/content/', {
+  fetch('/api/contents', {
     method: 'PATCH',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(data),
@@ -146,7 +147,7 @@ publishButton.onclick = async () => {
 };
 
 
-app.addEventListener('click', e => {
+document.body.addEventListener('click', e => {
   const el = e.target.closest('[data-wx-text]');
   if (el) {
     const initialInnerHTML = el.innerHTML;
@@ -160,7 +161,7 @@ app.addEventListener('click', e => {
   }
 });
 
-app.addEventListener('change', e => {
+document.body.addEventListener('change', e => {
   const el = e.target;
   if (el.matches('[data-wx-upload]')) {
     setEdit(el.dataset.wxUpload, `@{${el.files[0].name}}`);

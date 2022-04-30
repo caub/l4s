@@ -42,7 +42,7 @@ async function getUploadAuth() {
     if (cachedUploadAuth.code === 'expired_auth_token') {
       cachedAuth = null;
       console.log('Expired auth token, retry');
-      return getUploadUrl();
+      return getUploadAuth();
     }
 
     if (!cachedUploadAuth.authorizationToken) {

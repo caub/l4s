@@ -1,11 +1,101 @@
 import { h, Fragment } from 'preact';
+import { useState } from 'preact/hooks';
 import { marked } from 'marked';
+import { styled } from '@stitches/react';
+import Input from './input.js';
+
+
+const Details = styled('details', {
+  position: 'absolute',
+  backgroundColor: '#fffd',
+  backdropFilter: 'blur(20px)',
+  top: '-18px',
+  left: '1px',
+  zIndex: 99999997,
+
+  '&:not([open])': {
+    visibility: 'hidden',
+    pointerEvents: 'none',
+  },
+
+  '> summary': {
+    textTransform: 'uppercase',
+    whiteSpace: 'nowrap',
+    fontSize: '.75rem',
+  },
+  '> summary::marker': {
+    display: 'none',
+    content: '""',
+  },
+  '> summary::before': {
+    content: '"✏️"',
+  },
+  'form': {
+    display: 'grid',
+    gridTemplateColumns: 'auto minmax(150px, 1fr)',
+    gap: '.25rem .5rem',
+    marginBottom: 0,
+    padding: '2px',
+    textAlign: 'left',
+    boxShadow: '0 1px 2px 1px #0002',
+  },
+  'button': {
+    gridColumnStart: 2,
+    marginBottom: 0,
+    justifySelf: 'end',
+  },
+  '.form-control-sm': {
+    padding: '2px',
+    minHeight: '1.5rem',
+  },
+  '.form-control-sm[type="number"]': {
+    width: '4rem',
+  },
+});
+
+const ObjectContainer = styled('div', {
+  minWidth: '1.5rem',
+  minHeight: '1.5rem',
+
+  '&:hover': {
+    outline: '1px auto #f002',
+  },
+
+  [`&:hover ${Details}`]: {
+    visibility: 'visible',
+    pointerEvents: 'auto',
+  }
+});
+
+const TextStyled = styled('span', {
+  '&:hover': {
+    outline: '1px auto #f002',
+  },
+  '&[contenteditable=true]': {
+    outline: '1px auto #f00e',
+  },
+
+  '&:empty': {
+    minWidth: '50px',
+    minHeight: '1em',
+    display: 'inline-block',
+  },
+});
+
+const Icon = styled('i', {
+  display: 'inline-block',
+  width: '1.5rem',
+  fontSize: '90%',
+  verticalAlign: 'middle',
+});
+
 
 export default class Block {
-  constructor({ path, content, editMode }) {
+  constructor({ path, content, editMode, update }) {
     this.path = path;
     this.content = content;
     this.editMode = editMode;
+    this.update = update;
   }
 
   id(path) {
@@ -45,23 +135,41 @@ export default class Block {
   block(path) {
     const blockPath = this.id(path);
     const blockContent = this.get(path);
-    return new Block({ path: blockPath, content: blockContent, editMode: this.editMode });
+    return new Block({
+      path: blockPath,
+      content: blockContent,
+      editMode: this.editMode,
+      update: this.update,
+    });
   }
+
 
   Text = ({
     id,
     vars,
     markdown,
     inline,
-    as: As = markdown ? (inline ? 'p' : 'div') : (this.editMode ? 'span' : Fragment),
+    as: As = this.editMode ? TextStyled : markdown ? (inline ? 'p' : 'div') : Fragment,
     ...rest
   }) => {
     const text = this.text(id, vars);
 
+    const click = (e) => {
+      const el = e.target;
+      const initialInnerHTML = el.innerHTML;
+      el.contentEditable = true;
+      el.focus();
+      el.addEventListener('blur', () => {
+        el.contentEditable = false;
+        if (el.innerHTML === initialInnerHTML) return;
+        this.update({ [this.id(id)]: el.innerHTML });
+      }, { once: true });
+    }
+
     if (markdown) {
       return (
         <As
-          {...this.editMode && { 'data-wx-text': this.id(id) }}
+          {...this.editMode && { as: inline ? 'p' : 'div', onClick: click  }}
           {...rest}
           dangerouslySetInnerHTML={{ __html: this.editMode ? text : inline ? marked.parseInline(text) : marked.parse(text) }}
         />
@@ -69,71 +177,80 @@ export default class Block {
     }
 
     return (
-      <As {...this.editMode && { 'data-wx-text': this.id(id) }} {...rest}>
+      <As {...this.editMode && { onClick: click }} {...rest}>
         {text}
       </As>
     );
   }
 
   List = ({ id, as: As = 'ul', orderBy, children, ...rest }) => {
-    const listData = this.get(id) || [];
+    const listData = this.get(id) || {};
+    const listKeys = Object.keys(listData);
 
-    if (orderBy) listData.sort((a, b) => a[orderBy]- b[orderBy]);
-
-    if (typeof listData?.map !== 'function') {
-      console.error('incorrect list data', listData);
-      return null;
-    }
+    if (orderBy) listKeys.sort((a, b) => listData[a][orderBy]- listData[b][orderBy]);
 
     return (
       <As {...rest}>
-        {listData.map((data, index) => {
-          const item = this.block(`${id}.${index}`);
+        {listKeys.map((key) => {
+          const keyId = [id, key].filter(Boolean).join('.');
+          const item = this.block(keyId);
 
-          return children(item, index);
+          return children(item, key);
         })}
-        {this.editMode && children(this.block(`${id}.${listData.length}`), listData.length)}
+        {this.editMode && children(this.block(`${id}.${listKeys.length}`), listKeys.length)}
       </As>
     );
   }
 
-  Object = ({ id, keys, uploadable = [], index, help, as: As = this.editMode ? 'div' : Fragment, children, className = '', ...rest }) => {
+  Object = ({ id, fields, uploadable = [], as: As = this.editMode ? ObjectContainer : Fragment, children, className = '', ...rest }) => {
+    const handleSubmit = this.editMode && (e => {
+      e.preventDefault();
+
+      this.update(Object.fromEntries([...e.target.elements].filter(el => el.name).map(el => [el.name, el.value])));
+
+      e.target.closest('details').toggleAttribute('open');
+    });
+
     return (
-      <As key={index} {...rest} {...this.editMode && { 'className': `position-relative ${className}` }}>
+      <As {...rest} className={className} {...this.editMode && { className: `position-relative ${className}` }}>
         {children}
         {this.editMode && (
-          <details className="wx-block text-muted" data-wx-path={this.id(id)}>
+          <Details className="text-muted">
             <summary />
-            <dl className="border border-light">
-              {keys.split(',').map(key => (
-                <Fragment key={key}> 
-                  <dt title={help?.[key]}>{key}</dt>
-                  <dd><this.Text id={[id, key].filter(Boolean).join('.')} /></dd>
-                  {uploadable.includes(key) && (
-                    <dd>
-                      <input
-                        type="file"
-                        data-wx-upload={this.id([id, key].filter(Boolean).join('.'))}
-                        className="form-control form-control-sm"
-                      />
-                    </dd>
-                  )}
-                </Fragment>
-              ))}
-            </dl>
-          </details>
+            <form className="border border-light" onSubmit={handleSubmit}>
+              {Object.entries(fields).map(([key, field]) => {
+                const keyId = [id, key].filter(Boolean).join('.');
+                const fullId = this.id(keyId);
+
+                return (
+                  <Fragment key={key}> 
+                    <label htmlFor={fullId}>{key}</label>
+                    <Input
+                      id={fullId}
+                      name={fullId}
+                      {...field}
+                      value={this.get(keyId)}
+                      placeholder={`[${keyId}]`}
+                      className="form-control form-control-sm"
+                    />
+                  </Fragment>
+                );
+              })}
+              <button className="btn btn-default btn-sm">Save</button>
+            </form>
+          </Details>
         )}
       </As>
     );
   }
 
-  Image = ({ id, keys = 'url,alt', ...rest }) => {
+  Image = ({ id, fields = { url: { type: 'file', required: true }, alt: {} }, ...rest }) => {
     const data = this.get(id) || {};
 
     if (!this.editMode && !data.url) return null;
 
     return (
-      <this.Object id={id} keys={keys} uploadable={['url']}>
+      <this.Object id={id} fields={fields}>
         <img
           src={this.editMode && !data.url
             ? 'data:image/gif;base64,R0lGODlhAQABAAAAACH5BAEKAAEALAAAAAABAAEAAAICTAEAOw=='
@@ -148,25 +265,24 @@ export default class Block {
     );
   }
 
-  Button = ({ id, children, as: As, keys = 'text', ...rest }) => {
-    const data = this.get(id) || {};
-
-    return (
-      <this.Object id={id} keys={keys} as={As}>
-        <button {...rest}>{data.text || children}</button>
-      </this.Object>
-    );
-  }
-
-  Link = ({ id, children, as: As, keys = 'url,text,rel,target', ...rest }) => {
+  Link = ({ id, children, as: As, fields = { text: { required: true }, url: { pattern: '(\\w+:|/).*' }, icon: {}, target: {} }, ...rest }) => {
     const data = this.get(id) || {};
     const href = data.url || rest.href;
-    const rel = data.rel || rest.rel;
     const target = data.target || rest.target;
+    const icon = data.icon || rest.icon;
+    const content = (
+      <>
+        {icon && <Icon className={icon} role="img" />}
+        {data.text || children}
+      </>
+    );
 
     return (
-      <this.Object id={id} keys={keys} as={As}>
-        <a href={href} rel={rel} target={target} {...rest}>{data.text || children}</a>
+      <this.Object id={id} fields={fields} as={As} {...this.editMode && { className: 'h-100' }}>
+        {href
+          ? <a href={href} target={target} {...rest}>{content}</a>
+          : content
+        }
       </this.Object>
     );
   }

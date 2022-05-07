@@ -1,6 +1,9 @@
 import { h } from 'preact';
+import App from './components/app.js';
 
-console.log('h', h);
+// const app = h(App, { cms },
+//     h(Page, { cms: cms.block(path) })
+//   );
 
 function html(type, props) {
   const el = document.createElement(type);
@@ -9,60 +12,9 @@ function html(type, props) {
 }
 
 const style = html('style')(`
-[data-wx-text]:hover {
-  outline: 1px auto #f002;
-}
-[data-wx-text][contenteditable=true] {
-  outline: 1px auto #f00e;
-}
-
-[data-wx-text]:empty {
-  min-width: 50px;
-  min-height: 1em;
-  display: inline-block;
-}
 
 
-.wx-block {
-  position: absolute;
-  background-color: #fffd;
-  backdrop-filter: blur(20px);
-  top: 1px;
-  left: 1px;
-  z-index: 99999997
-}
-.wx-block > summary {
-  text-transform: uppercase;
-  white-space: nowrap;
-  font-size: .75rem;
-}
-.wx-block > summary::marker {
-  display: none;
-  content: "";
-}
-.wx-block > summary::before {
-  content: "✏️";
-}
-.wx-block > dl {
-  display: grid;
-  grid-template-columns: auto 1fr;
-  gap: .25rem .5rem;
-  margin-bottom: 0;
-  padding: 2px;
-  text-align: left;
-  box-shadow: 0 1px 2px 1px #0002;
-}
-.wx-block > dl > dd {
-  grid-column-start: 2;
-  margin-bottom: 0;
-}
-.wx-block .form-control-sm {
-  padding: 2px;
-  min-height: 1.5rem;
-}
-.wx-block .form-control-sm[type="number"] {
-  width: 4rem;
-}
+
 
 .wx-publish {
   position: fixed;
@@ -88,7 +40,7 @@ const style = html('style')(`
 }
 `);
 
-document.head.append(style);
+// document.head.append(style);
 
 const publishButton = html('button', { className: 'show btn btn-sm btn-success position-absolute' })('Publish');
 const publishEdit = html('textarea', { className: 'form-control form-control-sm' })();
@@ -147,19 +99,19 @@ publishButton.onclick = async () => {
 };
 
 
-document.body.addEventListener('click', e => {
-  const el = e.target.closest('[data-wx-text]');
-  if (el) {
-    const initialInnerHTML = el.innerHTML;
-    el.contentEditable = true;
-    el.focus();
-    el.addEventListener('blur', () => {
-      el.contentEditable = false;
-      if (el.innerHTML === initialInnerHTML) return;
-      setEdit(el.dataset.wxText, el.innerHTML);
-    }, { once: true });
-  }
-});
+// document.body.addEventListener('click', e => {
+//   const el = e.target.closest('[data-wx-text]');
+//   if (el) {
+//     const initialInnerHTML = el.innerHTML;
+//     el.contentEditable = true;
+//     el.focus();
+//     el.addEventListener('blur', () => {
+//       el.contentEditable = false;
+//       if (el.innerHTML === initialInnerHTML) return;
+//       setEdit(el.dataset.wxText, el.innerHTML);
+//     }, { once: true });
+//   }
+// });
 
 document.body.addEventListener('change', e => {
   const el = e.target;

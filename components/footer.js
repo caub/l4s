@@ -1,42 +1,34 @@
 import { h } from 'preact';
+import { styled } from '@stitches/react';
+
+
+const Container = styled('div', {
+  display: 'grid',
+});
 
 export default ({ cms }) => (
-  <div className="container py-5">
-    <cms.List id="sections" as="div" className="row">
+  <div className="container d-flex flex-wrap justify-content-between pt-3 pt-md-5 pb-2 gap-4">
+    <cms.List id="sections" as="div" className="d-flex gap-2">
       {(item, i) => (
-        <div key={i} className="col-2">
-          <h5>Section</h5>
-          <item.List id="items" className="nav flex-column">
+        <div key={i}>
+          <h5 className="mb-4 py-3"><item.Text id="title" /></h5>
+          <item.List id="items" className="nav flex-column gap-3">
             {(subitem, j) => (
-              <li key={j} className="nav-item mb-2"><subitem.Link id="link" className="nav-link p-0 text-muted" /></li>
+              <li key={j} className="nav-item"><subitem.Link id="link" className="nav-link p-0 text-muted" /></li>
             )}
           </item.List>
         </div>
       )}
     </cms.List>
-    <div className="row">
-      <div className="col-4 offset-1">
-        <form>
-          <h5><cms.Text id="subscribe.title" /></h5>
-          <cms.Text markdown inline id="subscribe.subtitle" />
-          <div className="d-flex w-100 gap-2">
-            <label htmlFor="newsletter" className="visually-hidden"><cms.Text id="subscribe.email" /></label>
-            <input id="newsletter" type="text" className="form-control" placeholder="you@gmail.com" />
-            <cms.Button id="subscribe.btn" className="btn btn-primary" type="button" />
-          </div>
-        </form>
-      </div>
-    </div>
 
-    <div className="d-flex justify-content-between py-4 my-4 border-top">
-      <cms.Text markdown inline id="company.text" />
-      <cms.List id="social"  className="list-unstyled d-flex">
-        {(item, i) => (
-          <li key={i} className="ms-3">
-            <item.Link id="link" keys="url,icon" className="link-dark"><i className={item.text('icon')} role="img" style={{ fontSize: 24 }} /></item.Link>
-          </li>
-        )}
-      </cms.List>
-    </div>
+    <form className="col-md-4">
+      <h5 className="mb-4 py-3"><cms.Text id="contact.title" /></h5>
+      <cms.Text markdown inline id="contact.subtitle" />
+      <cms.Object id="form" fields={{ url: {}, email: {}, message: {}, send: {} }} action={cms.text('form.url')} method="POST" className="mt-2">
+        <input type="email" className="form-control mb-2" placeholder={cms.text('form.email')} />
+        <textarea type="message" className="form-control mb-3" placeholder={cms.text('form.message')} />
+        <button className="btn btn-primary rounded-pill">{cms.text('form.send')}</button>
+      </cms.Object>
+    </form>
   </div>
 )

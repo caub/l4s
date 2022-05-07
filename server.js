@@ -1,6 +1,7 @@
 require('dotenv/config');
 const express = require('express');
-const { h, render } = require('preact');
+const { h } = require('preact');
+const render = require('preact-render-to-string');
 const babel = require('@babel/core');
 const fs = require('fs');
 const basicAuth = require('basic-auth');
@@ -9,7 +10,7 @@ const contents = require('./contents');
 const layout =  require('./layout');
 const b2 = require('./b2');
 require('@babel/register')({
-  only: [`${__dirname}/components`],
+  only: [`${__dirname}/components`, `${__dirname}/pages`],
   plugins: [
     '@babel/plugin-transform-modules-commonjs',
     ['@babel/plugin-transform-react-jsx', {
@@ -26,6 +27,16 @@ process.on('uncaughtExceptionMonitor', (err, origin) => {
   console.log('IMPORTANT', origin, err);
 });
 
+function checkAuth(req, res, next) {
+  if (process.env.NODE_ENV !== 'production') return next();
+
+  const credentials = basicAuth(req);
+  if (credentials && `${credentials.name}:${credentials.pass}` === process.env.ADMIN_CREDS) return next();
+
+  res.header('WWW-Authenticate', 'Basic realm=""');
+  res.sendStatus(401);
+}
+
 const app = express().disable('x-powered-by');
 
 app.get('/healthz', (req, res) => res.end());
@@ -41,29 +52,12 @@ if (process.env.NODE_ENV === 'production') {
   app.use(compression());
 }
 
-app.use('/static', express.static(__dirname + '/public', process.env.NODE_ENV === 'production' && {
-  redirect: false,
-  index: false,
-  maxAge: '30d',
-}));
-app.use('/static', express.static(__dirname + '/assets', process.env.NODE_ENV === 'production' && {
-  immutable: true,
-  redirect: false,
-  index: false,
-  maxAge: '30d',
-}));
-app.get('/nde_modules',
-  (req, res, next) => req.query.edit !== undefined ? next() : res.status(404).end(),
-  express.static(__dirname + '/components'),
-  express.static(__dirname + '/pages'),
-);
-app.get('/modules/*', (req, res) => {
-  if (req.query.edit === undefined) return res.status(404).end();
-  // TODO validate path / security
+app.get(['/pages/*', '/components/*'], checkAuth, (req, res) => {
+  const path = req.url.slice(1);
 
-  req.set('Content-Type', 'text/javascript');
+  res.set('Content-Type', 'text/javascript');
 
-  babel.transformFileAsync(req.url.slice(8), {
+  babel.transformFileAsync(path, {
     plugins: [
       ['@babel/plugin-transform-react-jsx', {
         pragma: 'h',
@@ -77,6 +71,18 @@ app.get('/modules/*', (req, res) => {
       res.send(err.message);
     });
 });
+app.use('/modules', express.static(__dirname + '/node_modules'));
+app.use('/static', express.static(__dirname + '/public', process.env.NODE_ENV === 'production' && {
+  redirect: false,
+  index: false,
+  maxAge: '30d',
+}));
+app.use('/static', express.static(__dirname + '/assets', process.env.NODE_ENV === 'production' && {
+  immutable: true,
+  redirect: false,
+  index: false,
+  maxAge: '30d',
+}));
 
 // TODO fix
 app.use('/bootstrap-icons.woff2', express.static(__dirname + '/assets', { index: '/bootstrap-icons.woff2' }));
@@ -87,22 +93,10 @@ app.use(require('express-request-language')({
   queryName: 'lang',
 }));
 
-function checkAuth(req, res, next) {
-  if (process.env.NODE_ENV !== 'production') return next();
 
-  const credentials = basicAuth(req);
-  if (credentials && `${credentials.name}:${credentials.pass}` === process.env.ADMIN_CREDS) return next();
-
-  res.header('WWW-Authenticate', 'Basic realm=""');
-  res.sendStatus(401);
-}
 app.use((req, res, next) => {
-  if (req.query.edit !== undefined && process.env.NODE_ENV === 'production') {
-    const credentials = basicAuth(req);
-    if (`${credentials?.name}:${credentials?.pass}` !== process.env.ADMIN_CREDS) {
-      res.header('WWW-Authenticate', 'Basic realm=""');
-      res.sendStatus(401);
-    }
+  if (req.query.edit !== undefined) {
+    return checkAuth(req, res, next);
   }
   next();
 });
@@ -135,12 +129,12 @@ app.use((req, res, next) => {
 });
 
 async function renderPage(path, req) {
-  const { default: Page } = require(`./components/_${path}.js`);
+  const { default: Page } = require(`./pages/${path}.js`);
   const content = await contents.load(req.language, ['common', path]);
   const cms = new Block({ content, editMode: req.query.edit !== undefined });
   const meta = cms.get(`${path}.meta`);
 
-  const app = h(App, { cms },
+  const app = h(App, { cms, req },
     h(Page, { cms: cms.block(path) })
   );
 
@@ -158,7 +152,7 @@ app.get('*', async function (req, res, next) {
   const path = req.url.slice(1).split('?', 1)[0].replace(/\/$/, '') || 'index'; // trim leading / and trailing /
   const found = fs.existsSync(`./pages/${path}.js`);
 
-  if (!found) return next();
+  if (!found || !/^[\w-]*$/.test(path)) return next();
 
   try {
     res.send(await renderPage(path, req));

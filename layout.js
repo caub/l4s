@@ -1,5 +1,5 @@
 const fs = require('fs');
-
+const { getCssText } = require('./stitches.config');
 
 const cssFileName = fs.readdirSync(__dirname + '/assets').find(n => n.endsWith('.css'));
 
@@ -37,24 +37,35 @@ module.exports = function Html({
 
         <link rel="icon" href="/static/icon.png" />
 
-        ${process.env.NODE_ENV === 'production' ? '<script></script>' : ''}
-
         ${cssFileName ? `<link rel="preload" as="style" href="${'/static/' + cssFileName}" />
 <link rel="stylesheet" href="${'/static/' + cssFileName}" />` : ''}
+
+        ${req.query.edit !== undefined ? '' : `<style id="stitches">${getCssText()}</style>`}
       </head>
 
       <body>
-        <div id="app">${children}</div>
+        <div id="app">${req.query.edit !== undefined ? '' : children}</div>
 
-        ${req.query.edit !== undefined ? `<script type="application/json">${JSON.stringify(content)}</script>
-<script type="importmap">
-{
-  "imports": {
-    "preact": "/node_modules/preact/dist/preact.module.js"
-  }
-}
-</script>
-<script type="module" src="/static/editor.js"></script>` : ''}
+        <script type="importmap">
+        {
+          "imports": {
+            "@stitches/react": "/modules/@stitches/react/dist/index.mjs",
+            "lodash-es": "/modules/lodash-es/lodash.js",
+            "marked": "/modules/marked/lib/marked.esm.js",
+            "preact": "/modules/preact/dist/preact.module.js",
+            "preact/hooks": "/modules/preact/hooks/dist/hooks.module.js",
+            "react": "/modules/preact/compat/dist/compat.module.js"
+          }
+        }
+        </script>
+
+        ${req.query.edit !== undefined ? `<script type="application/json" id="__content">${JSON.stringify(content || {})}</script>
+<script type="module">
+import { h, render } from 'preact';
+import Editor from './components/editor.js';
+
+render(h(Editor, {path: '${path}'}), document.getElementById('app'));
+</script>` : ''}
       </body>
     </html>`
   );

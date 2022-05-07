@@ -9,7 +9,7 @@ export default function Home({ cms }) {
           <div className="lead mb-4"><cms.Text markdown id="subtitle" /></div>
           <div className="d-grid gap-3 d-sm-flex justify-content-sm-center mb-5">
             <cms.Link id="btn1" type="button" className="btn btn-primary btn-lg px-4" />
-            <cms.Button id="btn2" type="button" className="btn btn-outline-secondary btn-lg px-4" />
+            <cms.Link id="btn2" type="button" className="btn btn-outline-secondary btn-lg px-4" />
           </div>
         </div>
         <div className="container px-5">
